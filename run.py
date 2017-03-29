@@ -7,7 +7,7 @@ os.environ['TZ'] = 'US/Eastern'
 
 
 from pymongo import MongoClient
-
+from geopy.distance import vincenty
 host = "localhost:27017";
 mongo_client = MongoClient(host)
 logs_db = mongo_client.torque
@@ -19,10 +19,7 @@ import time
 import datetime
 
 
-# ubuntu@ip-172-31-32-235:/var/www/api.lawatlas.org/Symfony$ sudo  composer self-update
-# Updating to version 0d5ff633b5da378df379fc462877282633736a17.
-#     Downloading: 100%         
-# Use composer self-update --rollback to return to version 4d134ce8a2aacb9566fee8deb8c514248fd2a983
+
 sensors = {
 #                 'kff1005':{  
 #                     'id':'kff1005',
@@ -82,19 +79,19 @@ class MainHandler(tornado.web.RequestHandler):
         
         for key, value in data.iteritems():
             if 'userFullName' in key:
-                sensor_id = 'k' + key[len('userFullName'):]
+                sensor_id = 'k' + key[len('userFullName'):].strip("0")
                 if sensor_id not in sensors:
                     sensors[sensor_id] = {'id':sensor_id}
                 sensors[sensor_id]['name'] = value
                 
             if 'userShortName' in key:
-                sensor_id = 'k' + key[len('userShortName'):]
+                sensor_id = 'k' + key[len('userShortName'):].strip("0")
                 if sensor_id not in sensors:
                     sensors[sensor_id] = {'id':sensor_id}
                 sensors[sensor_id]['short_name'] = value
                 
             if 'userUnit' in key:
-                sensor_id = 'k' + key[len('userUnit'):]
+                sensor_id = 'k' + key[len('userUnit'):].strip("0")
                 if sensor_id not in sensors:
                     sensors[sensor_id] = {'id':sensor_id}
                 sensors[sensor_id]['unit'] = value
@@ -159,7 +156,19 @@ class SessionHandler(tornado.web.RequestHandler):
     
     def get(self):
         sessions = logs_db.TripData.distinct("session")
+        
+        sessions_meta = {}
+        for s in sessions:
+            a = list(logs_db.TripData.find({"session":s}).limit(1))[0]
+            a_loc = (a['kff1006'],a['kff1005'])
+            b = list(logs_db.TripData.find({"session":s}).sort([('_id',-1)]).limit(1))[0]
+            b_loc = (b['kff1006'],b['kff1005'])
+            tdelta = b['time'] - a['time']
+#             print vincenty(b_loc, a_loc).miles, tdelta 
+            sessions_meta[s] = {'distance': vincenty(b_loc, a_loc).miles, 'time': tdelta.total_seconds()}
+        sessions = {'sessions':sessions, 'meta':sessions_meta}
         self.write(json.dumps(sessions))
+        
 
 class DataHandler(tornado.web.RequestHandler):
     
@@ -176,9 +185,15 @@ class DataHandler(tornado.web.RequestHandler):
     def get(self):
         session_id = self.get_argument("session")
         
-        sensors = list(logs_db.Sensors.find({}))
+        
         data = list(logs_db.TripData.find({"session":session_id}))
+        
+        available_sensors = list(set([i for s in [d.keys() for d in data] for i in s]))
+        sensors = list(logs_db.Sensors.find({'id':{'$in':available_sensors}}))
+        
         res = {'data':data, 'sensors':sensors}
+        
+        
         self.write(json.dumps(res,default=json_util.default))
 
 

@@ -77,14 +77,15 @@
     </div>
     <div class="large-6 columns clearfix"> 
         <div id = 'chart'></div>
-        <div id='map'  style='width: 900px; height: 700px;'></div>
+        <div id='map'  style='width: 900px; height: 500px;'></div>
     </div>
 </div>
 </body>
     <script>
    var map;
    var map_items = [];
-        
+   var sessions;        
+   var meta;        
     $(document).ready(function(){
  
     
@@ -92,29 +93,36 @@
                   {
                   },
                   function( res ) {
-                console.log(res)
-                    $.each(res, function(i,ses){
+             meta = res.meta
+             console.log(res)
+             res.sessions.reverse()
+             sessions = res.sessions
+                    $.each(sessions, function(i,ses){
                         var date = new Date(null);
                         date.setSeconds(ses/1000 + 3600)
                         date = date.format('m/d/yy h:MM TT')
-                         var $btn = $('<div>').html(date)
+                         var $btn = $('<div>').html(date + ' | ' + meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins').attr('id','session_btn_'+ses)
                             .attr('style', '    margin: 0 0 0.2rem 0;')
-                            .attr('class', 'button tiny expanded')
+                            .attr('class', 'button tiny expanded session_btn')
                             .on('click', function(){
                                 display(ses)
                             })
                         $('#sessions').append($btn)
                         
                     })
+                    display(sessions[0])
                 })
    
         
       
-        display('1490694421739')
+        
         
     })
     
     function display(session){
+        $('.session_btn').removeClass('success')
+        $('#session_btn_'+session).addClass('success')
+        
        $.getJSON( "http://mikekorostelev.com/data",
                   {
                     session: session
@@ -133,9 +141,9 @@
            
                     $('#sensors').empty()
                     $.each(res.sensors, function(i,s){
-                         var $btn = $('<div>').html(s.name)
+                         var $btn = $('<div>').html(s.name).attr('id', 'sensor_btn_'+s.id)
                             .attr('style', '    margin: 0 0 0.2rem 0;')
-                            .attr('class', 'button tiny expanded')
+                            .attr('class', 'button tiny expanded sensor_btn')
                             .on('click', function(){
                                 console.log(s)
                                 initMap(res.data,s['id'])
@@ -152,11 +160,15 @@
     }
 
         
-        function initMap(data,variable, init) {
+    function initMap(data,variable, init) {
+        $('.sensor_btn').removeClass('success')
+        $('#sensor_btn_'+variable).addClass('success')
+        
+        
         if(init){
         map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 16,
-          center: data[0],
+          zoom: 12,
+          center: data[data.length%2],
           mapTypeId: 'terrain'
         });
         }else{
@@ -219,8 +231,6 @@
 
 
 
-//        var parseTime = d3.utcParse("%H:%M"),
-//            midnight = parseTime("00:00");
 
         var margin = {top: 30, right: 30, bottom: 30, left: 30},
             width = 960 - margin.left - margin.right,
@@ -337,7 +347,7 @@
         
         var map = new mapboxgl.Map({
           container: 'map',
-          center: [data[0].lng,data[0].lat],
+          center: [data[data.length%2].lng,data[0].lat],
           zoom: 10,
           style: 'mapbox://styles/mapbox/streets-v9',
           hash: true
