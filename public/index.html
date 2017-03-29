@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>title</title>
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>-->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5PCX2zq3GujBeukoNjsPgte0zD16t14c"> </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.7.4/d3.js"> </script>
+
+      
+      <script src='https://api.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.css' rel='stylesheet' />
+
+    <script src="js/vendor/jquery.js"></script>
+    <script src="js/vendor/what-input.js"></script>
+    <script src="js/vendor/foundation.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/date.format.js"></script>
+    <link rel="stylesheet" href="css/foundation.css">
+    <link rel="stylesheet" href="css/app.css">
+          <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }      
+        
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+              
+.dots path {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis--y line {
+  stroke-opacity: 0.2;
+}
+
+.axis--y path {
+  stroke: none;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+    </style>
+</head>
+<body>
+<div class="row">
+    <div class="large-3  columns ">      
+        <div id = 'sessions' ></div>
+    </div>
+    <div class="large-3  columns ">      
+        <div id = 'sensors' ></div>
+    </div>
+    <div class="large-6 columns clearfix"> 
+        <div id = 'chart'></div>
+        <div id='map'  style='width: 900px; height: 700px;'></div>
+    </div>
+</div>
+</body>
+    <script>
+   var map;
+   var map_items = [];
+        
+    $(document).ready(function(){
+ 
+    
+         $.getJSON( "http://mikekorostelev.com/sessions",
+                  {
+                  },
+                  function( res ) {
+                console.log(res)
+                    $.each(res, function(i,ses){
+                        var date = new Date(null);
+                        date.setSeconds(ses/1000 + 3600)
+                        date = date.format('m/d/yy h:MM TT')
+                         var $btn = $('<div>').html(date)
+                            .attr('style', '    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button tiny expanded')
+                            .on('click', function(){
+                                display(ses)
+                            })
+                        $('#sessions').append($btn)
+                        
+                    })
+                })
+   
+        
+      
+        display('1490694421739')
+        
+    })
+    
+    function display(session){
+       $.getJSON( "http://mikekorostelev.com/data",
+                  {
+                    session: session
+                  },
+                  function( res ) {
+                //console.log(res)
+                    
+                    _.each(res.data, function(value, key) {
+                        value['lat'] = Number(value.kff1006);
+                        value['lng'] = Number(value.kff1005);
+                        value['time'] = value.time.$date
+                    });
+           
+                    res.data = _.sortBy(res.data,'time')
+                    //console.log(res.data)
+           
+                    $('#sensors').empty()
+                    $.each(res.sensors, function(i,s){
+                         var $btn = $('<div>').html(s.name)
+                            .attr('style', '    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button tiny expanded')
+                            .on('click', function(){
+                                console.log(s)
+                                initMap(res.data,s['id'])
+                            })
+                        $('#sensors').append($btn)
+                        
+                    })
+//                    mapBoxMap(res.data,res.sensors)
+                    initMap(res.data,'kff1001',true)
+                    
+                    
+                    
+                })
+    }
+
+        
+        function initMap(data,variable, init) {
+        if(init){
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 16,
+          center: data[0],
+          mapTypeId: 'terrain'
+        });
+        }else{
+            _.each(map_items,function(i){
+                i.setMap(null)
+            })
+            map_items = []
+        }
+//        variable = 'kff1239'
+          
+        _.each(data, function(m){ m[variable] = Number(m[variable])})
+        var extracted = _.pluck(data,variable)
+        $.each(extracted, function(i, m){  extracted[i] = Number(m)})
+          console.log(extracted)
+        var _range = ["red",  "lightgreen"];
+        var color = d3.scaleLinear()
+        .domain([d3.min(extracted),d3.max(extracted)])
+        .range(_range)
+        
+        var lines = [];
+        var colors = []
+        var buf = [data[0]]
+        var last = data[0]
+        _.each(data, function(m){
+//            m[variable] = Number(m[variable])
+
+            if (color(last[variable]) == color(m[variable])){
+               buf.push(m)  
+            }else{
+                lines.push(buf)   
+                colors.push(color(m[variable]))
+                buf = [last, m];
+            }
+            last =  _.clone(m)
+            
+        })
+          //console.log(lines.length)
+          //console.log(colors)
+         $.each(lines,function(i,line){
+              var PathStyle = new google.maps.Polyline({
+                path: line,
+                strokeColor:colors[i],
+                strokeOpacity: 1.0,
+                strokeWeight: 5,
+                map: map
+              });
+             map_items.push(PathStyle)
+          })
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+
+
+//        var parseTime = d3.utcParse("%H:%M"),
+//            midnight = parseTime("00:00");
+
+        var margin = {top: 30, right: 30, bottom: 30, left: 30},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+            var a = new Date(null);
+                a.setSeconds(data[0].time/1000 +3600)
+            
+            var b = new Date(null);
+                b.setSeconds(data[data.length-1].time/1000 +3600)
+            
+            
+        var x = d3.scaleTime()
+            .domain([a, b])
+            .range([0, width]);
+
+        var y = d3.scaleLinear()
+            .range([height, 0]);
+		$('#chart').empty()
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+          y.domain([0, d3.max(data, function(d) { return d[variable]; })]);
+
+          svg.append("g")
+              .attr("class", "axis axis--x")
+              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom()
+                  .scale(x)
+                  .tickFormat(d3.utcFormat("%I:%M %p")));
+
+           
+            
+            
+          svg.append("g")
+              .attr("class", "dots")
+            .selectAll("path")
+              .data(data)
+            .enter().append("path")
+              .attr("transform", function(d) {
+              
+                      if(isNaN(d[variable])){
+                        return "translate(" + x(d.time) + "," + y(0) + ")"
+                          }else{
+                            var a = new Date(null);
+                            a.setSeconds(d.time/1000 +3600)
+              return "translate(" + x(a) + "," + y(d[variable]) + ")"
+                          };
+          })
+              .attr("d", d3.symbol()
+                  .size(40));
+
+          var tick = svg.append("g")
+              .attr("class", "axis axis--y")
+              .call(d3.axisLeft()
+                  .scale(y)
+                  .tickSize(-width)
+                  )
+            .select(".tick:last-of-type");
+
+          var title = tick.append("text")
+              .attr("dy", ".32em")
+              .text("tweets per hour");
+
+          tick.select("line")
+              .attr("x1", title.node().getBBox().width + 6);
+
+            
+            
+            
+            
+            var line = d3.line()
+            .x(function(d) { 
+                
+                var a = new Date(null);
+                a.setSeconds(d.time/1000 +3600)
+                return x(a); })
+            .y(function(d) { 
+                if(isNaN(d[variable]))
+                    return y(d3.min(extracted))
+                else
+                    return y(d[variable]); });
+
+            
+    svg.append("path")
+     .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+            
+            
+        function type(d) {
+          d.rate = +d.count / 327 * 60; // January 8 to November 30
+//          d.time = parseTime(d.time);
+          d.time.setUTCHours((d.time.getUTCHours() + 24 - 7) % 24);
+          return d;
+        }
+
+          
+          
+          
+          
+          
+          
+          
+      }
+        
+        
+    function mapBoxMap(data, sensors){
+        mapboxgl.accessToken = 'pk.eyJ1Ijoia29yb3N0ZWxldm1pa2UiLCJhIjoiY2lqZDFtdnN4MDAzM3V1bTAya3ZkNmd3aSJ9.U8rhfHE1CMocao_vkKNCOw';
+        
+        var map = new mapboxgl.Map({
+          container: 'map',
+          center: [data[0].lng,data[0].lat],
+          zoom: 10,
+          style: 'mapbox://styles/mapbox/streets-v9',
+          hash: true
+        });
+        
+        var coordinates = [];
+        data = _.each(data, function(m){ coordinates.push([m.lng, m.lat])})
+        speed = _.pluck(data,'kff1001')
+        console.log(speed)
+        color = d3.scaleLinear()
+        .domain(speed)
+        .range(["red", "white", "green"])
+        
+        console.log(color(0))
+        console.log(color(20))
+        console.log(color(100))
+//        _.each(sensors, function(s){console.log(s)})
+//        var geojson = []
+//        data
+//        geojson.push(
+//            { "type": "Feature", "properties": { "id": 2, "elevation": 50 }, "geometry": { "type": "LineString", "coordinates": [ [ 11.836395263671875, 47.75317468890147 ], [ 11.865234375, 47.73193447949174 ] ] } },
+//        )
+        
+        
+//         var yourGeoJSON = [ 
+//{ "type": "Feature", "properties": { "id": 2, "elevation": 50 }, "geometry": { "type": "LineString", "coordinates": [ [ 11.836395263671875, 47.75317468890147 ], [ 11.865234375, 47.73193447949174 ] ] } },
+//{ "type": "Feature", "properties": { "id": 1, "elevation": 750 }, "geometry": { "type": "LineString", "coordinates": [ [ 11.865234375,47.73193447949174 ], [ 11.881027221679688, 47.700520033704954 ] ] } },
+//{ "type": "Feature", "properties": { "id": 0, "elevation": 1700 }, "geometry": { "type": "LineString", "coordinates": [ [ 11.881027221679688, 47.700520033704954 ], [ 11.923599243164062, 47.706527200903395 ] ] } },
+//{ "type": "Feature", "properties": { "id": 0, "elevation": 3000 }, "geometry": { "type": "LineString", "coordinates": [ [ 11.923599243164062, 47.706527200903395 ], [ 11.881027221679688, 47.700520033704954 ], ] } }
+//];
+        
+        
+        
+        map.on('load', function () {
+                map.addLayer({
+                    "id": "route",
+                    "type": "line",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": coordinates
+                            }
+                        }
+                    },
+                    "layout": {
+                        "line-join": "round",
+                        "line-cap": "round"
+                    },
+                    "paint": {
+                        "line-color": "#888",
+                        "line-width": 8
+                    }
+                });
+            });
+        
+        
+    }
+
+      
+
+    </script>
+
+</html>
