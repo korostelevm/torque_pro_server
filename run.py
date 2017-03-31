@@ -141,7 +141,7 @@ class MainHandler(tornado.web.RequestHandler):
         print self.request.body
         print 'post'
         self.write("OK!")
-
+# reference https://reminiscential.wordpress.com/2012/04/07/realtime-notification-delivery-using-rabbitmq-tornado-and-websocket/
 class SessionHandler(tornado.web.RequestHandler):
     
     
@@ -195,7 +195,50 @@ class DataHandler(tornado.web.RequestHandler):
         
         
         self.write(json.dumps(res,default=json_util.default))
+        
 
+class DeleteHandler(tornado.web.RequestHandler):
+    
+    
+    
+    def check_origin(self, origin):
+        return True
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    #
+    
+    def get(self):
+        session_id = self.get_argument("delete_session")
+        
+        
+        data = logs_db.TripData.remove({"session":session_id}))
+        
+        
+        res = {'data':data}
+        
+        self.write(json.dumps(res,default=json_util.default))
+        
+        
+# import tornado.websocket as websocket
+# class MyWebSocketHandler(websocket.WebSocketHandler):
+#     def check_origin(self, origin):
+#         return True
+#     
+#     def open(self, *args, **kwargs):
+#         self.write_message(u"You said: " + message)
+#         print 'socket open'
+#         
+#  
+#     def on_close(self):
+# #         pika.log.info("WebSocket closed")
+#         print 'socket close'
+#         self.application.pc.remove_event_listener(self)
+#     
+#     def on_message(self, message):
+#         print 'cleint said: ', message
+#         self.write_message(u"You said: " + message)
 
 def make_app():
     return tornado.web.Application([
@@ -203,7 +246,9 @@ def make_app():
         (r"/push/*", MainHandler),
         (r"/sessions", SessionHandler),
         (r"/data*", DataHandler),
+        (r"/update*", UpdateHandler),
         (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
+#         (r'/ws', handlers.MyWebSocketHandler),
     ])
 
 if __name__ == "__main__":
