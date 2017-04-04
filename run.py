@@ -3,6 +3,7 @@ import tornado.web
 from bson import json_util
 import json
 import os
+from pip._vendor.requests.sessions import session
 os.environ['TZ'] = 'US/Eastern'
 
 
@@ -142,6 +143,7 @@ class MainHandler(tornado.web.RequestHandler):
         print 'post'
         self.write("OK!")
 # reference https://reminiscential.wordpress.com/2012/04/07/realtime-notification-delivery-using-rabbitmq-tornado-and-websocket/
+#             print vincenty(b_loc, a_loc).miles, tdelta  tdelta.total_seconds()
 class SessionHandler(tornado.web.RequestHandler):
     
     
@@ -155,18 +157,18 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
-        sessions = logs_db.TripData.distinct("session")
-        
+        sessions = logs_db.TripData.find({'kff1204':{'$ne':None},'kff1266':{'$ne':None}}).sort('time',-1)
+        session_ids = []
         sessions_meta = {}
-        for s in sessions:
-            a = list(logs_db.TripData.find({"session":s}).limit(1))[0]
-            a_loc = (a['kff1006'],a['kff1005'])
-            b = list(logs_db.TripData.find({"session":s}).sort([('_id',-1)]).limit(1))[0]
-            b_loc = (b['kff1006'],b['kff1005'])
-            tdelta = b['time'] - a['time']
-#             print vincenty(b_loc, a_loc).miles, tdelta 
-            sessions_meta[s] = {'distance': vincenty(b_loc, a_loc).miles, 'time': tdelta.total_seconds()}
-        sessions = {'sessions':sessions, 'meta':sessions_meta}
+        for a in sessions:
+            if a['session'] in session_ids:
+                continue;
+            distance =  float(a['kff1204']) 
+            duration =  float(a['kff1266'])
+            email = a['email'] if 'email' in a else 'anon'
+            sessions_meta[a['session']] = {'distance': distance, 'time': duration, 'email':email}
+            session_ids.append(a['session'])
+        sessions = {'sessions':session_ids, 'meta':sessions_meta}
         self.write(json.dumps(sessions))
         
 
@@ -190,14 +192,19 @@ class DataHandler(tornado.web.RequestHandler):
         
         available_sensors = list(set([i for s in [d.keys() for d in data] for i in s]))
         sensors = list(logs_db.Sensors.find({'id':{'$in':available_sensors}}))
-        
+#         
+#         for i, sample in enumerate(data):
+#             for j, m in sample.iteritems():
+#                 if j in sensors:
+#                     data[i][j] = float(m)
+                
         res = {'data':data, 'sensors':sensors}
         
         
         self.write(json.dumps(res,default=json_util.default))
         
 
-class DeleteHandler(tornado.web.RequestHandler):
+class UpdateHandler(tornado.web.RequestHandler):
     
     
     
@@ -213,7 +220,7 @@ class DeleteHandler(tornado.web.RequestHandler):
         session_id = self.get_argument("delete_session")
         
         
-        data = logs_db.TripData.remove({"session":session_id}))
+        data = logs_db.TripData.remove({"session":session_id})
         
         
         res = {'data':data}
@@ -221,24 +228,24 @@ class DeleteHandler(tornado.web.RequestHandler):
         self.write(json.dumps(res,default=json_util.default))
         
         
-# import tornado.websocket as websocket
-# class MyWebSocketHandler(websocket.WebSocketHandler):
-#     def check_origin(self, origin):
-#         return True
-#     
-#     def open(self, *args, **kwargs):
-#         self.write_message(u"You said: " + message)
-#         print 'socket open'
-#         
-#  
-#     def on_close(self):
-# #         pika.log.info("WebSocket closed")
-#         print 'socket close'
-#         self.application.pc.remove_event_listener(self)
-#     
-#     def on_message(self, message):
-#         print 'cleint said: ', message
-#         self.write_message(u"You said: " + message)
+import tornado.websocket as websocket
+class SocketHandler(websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
+     
+    def open(self, *args, **kwargs):
+        self.write_message(u"You said: " + message)
+        print 'socket open'
+         
+  
+    def on_close(self):
+#         pika.log.info("WebSocket closed")
+        print 'socket close'
+        self.application.pc.remove_event_listener(self)
+     
+    def on_message(self, message):
+        print 'cleint said: ', message
+        self.write_message(u"You said: " + message)
 
 def make_app():
     return tornado.web.Application([
@@ -248,7 +255,7 @@ def make_app():
         (r"/data*", DataHandler),
         (r"/update*", UpdateHandler),
         (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
-#         (r'/ws', handlers.MyWebSocketHandler),
+        (r'/ws', SocketHandler),
     ])
 
 if __name__ == "__main__":

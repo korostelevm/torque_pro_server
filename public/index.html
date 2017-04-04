@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <title>title</title>
 <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>-->
+      
+      
     <script src="js/vendor/jquery.js"></script>
     <script src="js/vendor/what-input.js"></script>
     <script src="js/vendor/foundation.js"></script>
@@ -18,6 +20,7 @@
 
 
     <script src="js/date.format.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="css/foundation.css">
       <link rel="stylesheet/less" type="text/css" href="css/app.less" />
       <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.min.js"></script>
@@ -26,56 +29,75 @@
 </head>
 <body>
 <div class="off-canvas-wrapper">
-<div class="off-canvas position-left" id="offCanvas" data-off-canvas >
+<div class="off-canvas position-bottom" id="offCanvas" data-off-canvas data-content-overlay='false' data-close-on-click='false' data-transition-time='100'>
     <div id = 'sessions' ></div>
 </div>
-<div class="off-canvas position-bottom" id="offCanvasRight" data-off-canvas data-transition="overlap">
+<!--    data-transition="overlap"-->
+<div class="off-canvas position-bottom" id="offCanvasRight" data-off-canvas  data-content-overlay='false' data-close-on-click='false' data-transition-time='100'>
     <div id = 'sensors' ></div>
 </div>    
 
+            <div id = 'chart'  style='width: 100%; height: 20vh; position:absolute; z-index:1; background: rgba(255,255,255,0.5)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
-     <button type="button" class="button" data-toggle="offCanvas" style="position:absolute;">Trips</button>
-<button type="button" style= "bottom: 0px; position: absolute; left:50%; transform:translateX(-50%); z-index:1;" class="button" data-toggle="offCanvasRight">Sensors</button>
-            <div id = 'chart'  style='width: 100%; height: 30vh;'></div>
-            <div id='map'  style='width: 100%; height: 60vh;'></div>
+     
+     <button type="button" class="button control_btn alert close_btn hide" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px; right: 0px"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
+     <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px;">Trips</button>
+     <button type="button" class="button control_btn main_btn sensors_btn" style= "bottom: 0px; position: absolute; left:50%; transform:translateX(-50%); z-index:1;"  data-target="offCanvasRight">Sensors</button>
+            <div id='map'  style='width: 100%;'></div>
     </div>
 </div>
 </body>
-<!--
-    
-<body>
-    
-
-     <div class="row">
-        <div class="large-3  columns ">      
-            <div id = 'sessions' ></div>
-        </div>
-        <div class="large-3  columns ">      
-            <div id = 'sensors' ></div>
-        </div>
-        <div class="large-6 columns clearfix"> 
-            <div id = 'chart'></div>
-            <div id='map'  style='width: 900px; height: 500px;'></div>
-        </div>
-     </div>
-</body>
--->
     
 <script>
+    $('#map').css('height', $(window).height())
     $(document).foundation();
+    $('.close_btn').on('click',function(){
+          $('.off-canvas').foundation('close');
+        $('.main_btn').find('.closeme').remove();
+        $('.main_btn').removeClass('success')
+        $('.close_btn').addClass('hide');
+    })
+    $('.main_btn').on('click',function(){
+        var btn = this;
+       $('.off-canvas').foundation('close');
+        $('.main_btn').find('.closeme').remove();
+        $('.main_btn').removeClass('success')
+       $('#'+ $(this).attr('data-target')).foundation('open');
+        $(this).addClass('success')
+        $('.close_btn').removeClass('hide');
+        
+    })
     
     if (!Foundation.MediaQuery.atLeast('large')) {
              $('.button').addClass('large')
+             
     }else{
-        $('.position-bottom').addClass('position-right')
-             $('.position-right').removeClass('position-bottom')
+        $('.trips_btn').css({
+            'bottom':'100px',
+        })
+        $('.close_btn').css({
+            'left':'0px',
+            'right':'auto',
+        })
+        $('.sensors_btn').css({
+            'bottom':'50px',
+            'left':'0px',
+            'transform':'none',
+        })
+        $('.main_btn').css({
+            'left':'0px',
+        })
+        $('.position-bottom').addClass('position-left')
+        $('.position-left').removeClass('position-bottom')
+        $('#chart').prependTo($('.off-canvas-content'))
     }
     
    var map;
    var map_items = [];
    var sessions;        
-   var meta;        
+   var meta;    
+   var chart_vars = {}
     $(document).ready(function(){
  
     
@@ -85,16 +107,16 @@
                   function( res ) {
              meta = res.meta
              console.log(res)
-             res.sessions.reverse()
              sessions = res.sessions
                     $.each(sessions, function(i,ses){
                         var date = new Date(null);
                         date.setSeconds(ses/1000 + 3600)
                         date = date.format('m/d/yy h:MM TT')
-                         var $btn = $('<div>').html(date + ' | ' + meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins').attr('id','session_btn_'+ses)
+                         var $btn = $('<div>').html(meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
                             .attr('style', '    margin: 0 0 0.2rem 0;')
                             .attr('class', 'button expanded session_btn')
                             .on('click', function(){
+                                console.log(ses)
                                 display(ses)
                             })
                         if (!Foundation.MediaQuery.atLeast('large')) {
@@ -111,7 +133,8 @@
         
         
     })
-    
+
+    // sensors buttons
     function display(session){
         $('.session_btn').removeClass('success')
         $('#session_btn_'+session).addClass('success')
@@ -122,32 +145,65 @@
                   },
                   function( res ) {
                 //console.log(res)
-                    
+                    res.data = _.sortBy(res.data,'time')
                     _.each(res.data, function(value, key) {
+                        _.each(res.sensors, function(s){
+                                value[s.id] = Number(value[s.id])
+                        })
                         value['lat'] = Number(value.kff1006);
                         value['lng'] = Number(value.kff1005);
-                        value['time'] = value.time.$date
+                        
+                        var a = new Date(null);
+                        a.setSeconds(value.time.$date/1000 +3600)
+                        value['time'] = a;
                     });
-           
-                    res.data = _.sortBy(res.data,'time')
-                    //console.log(res.data)
-           
+                    
+                    
+                        
                     $('#sensors').empty()
+                    res.sensors = _.sortBy(res.sensors, function(a) {
+                        return a.name;
+                    })
                     $.each(res.sensors, function(i,s){
-                         var $btn = $('<div>').html(s.name).attr('id', 'sensor_btn_'+s.id)
-                            .attr('style', '    margin: 0 0 0.2rem 0;')
-                            .attr('class', 'button expanded sensor_btn')
+                        var $sensor = $('<div>').addClass('button-group') 
+                        var $btn = $('<div>').html(s.name).attr('id', 'sensor_btn_'+s.id)
+                            .attr('style', 'width:80%;    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button  sensor_btn')
                             .on('click', function(){
                                 console.log(s)
                                 initMap(res.data,s['id'])
+                            })
+                         var $btn_x = $('<div>').html('x').attr('id', 'sensor_btn_x'+s.id)
+                            .attr('style', 'width:10%;    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button  sensor_btn')
+                            .on('click', function(){
+                                console.log(s)
+                                    var x_var = s['id'];
+                                    var y_var = chart_vars.y;
+                                  makeChart(res.data, x_var, y_var)
+                            })
+                         var $btn_y = $('<div>').html('y').attr('id', 'sensor_btn_y'+s.id)
+                            .attr('style', 'width:10%;    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button  sensor_btn')
+                            .on('click', function(){
+                                    x_var = chart_vars.x;
+                                    y_var = s['id'];
+                                  makeChart(res.data, x_var, y_var)
                             })
                          
                          console.log(Foundation.MediaQuery.current)
                          if (!Foundation.MediaQuery.atLeast('large')) {
                              $btn.addClass('large')
+                             $btn_y.addClass('large')
+                             $btn_x.addClass('large')
+                        }else{
+                             $btn.addClass('sensor_btn_sm')
+                             $btn_y.addClass('sensor_btn_sm')
+                             $btn_x.addClass('sensor_btn_sm')
                         }
                         
-                        $('#sensors').append($btn)
+                        $sensor.append($btn).append($btn_x).append($btn_y)
+                        $('#sensors').append($sensor)
                         
                     })
 //                    mapBoxMap(res.data,res.sensors)
@@ -178,20 +234,22 @@
         }
 //        variable = 'kff1239'
           
-        _.each(data, function(m){ m[variable] = Number(m[variable])})
+        
         var extracted = _.pluck(data,variable)
-        $.each(extracted, function(i, m){  extracted[i] = Number(m)})
-          console.log(extracted)
         var _range = ["red",  "lightgreen"];
         var color = d3.scaleLinear()
         .domain([d3.min(extracted),d3.max(extracted)])
         .range(_range)
+        
+        
+        var bounds = new google.maps.LatLngBounds();
         
         var lines = [];
         var colors = []
         var buf = [data[0]]
         var last = data[0]
         _.each(data, function(m){
+            bounds.extend(m);
             if (color(last[variable]) == color(m[variable])){
                buf.push(m)  
             }else{
@@ -213,54 +271,65 @@
              map_items.push(PathStyle)
           })
 
+        
+             
+            map.fitBounds(bounds);
           
-          
-          
-          
-          
-          
-          
-          
-          
-          
-
-
-
-
+          makeChart(data, 'time', variable)
+      }
+    
+    
+    function makeChart(data, x_var, y_var){
+        $('.sensor_btn').removeClass('success')
+        $('#sensor_btn_'+y_var).addClass('success')
+        $('#sensor_btn_x'+x_var).addClass('success')
+        $('#sensor_btn_y'+y_var).addClass('success')
+        console.log(data)
+        console.log(x_var)
+        console.log(y_var)
         var margin = {top: 30, right: 10, bottom: 30, left: 30},
             width = $('#chart').width() - margin.left - margin.right,
             height = $('#chart').height() - margin.top - margin.bottom;
-
-            var a = new Date(null);
-                a.setSeconds(data[0].time/1000 +3600)
-            
-            var b = new Date(null);
-                b.setSeconds(data[data.length-1].time/1000 +3600)
-            
-            
-        var x = d3.scaleTime()
-            .domain([a, b])
-            .range([0, width]);
-
-        var y = d3.scaleLinear()
-            .range([height, 0]);
         
-		$('#chart').empty()
+        
+        $('#chart').empty()
         var svg = d3.select("#chart").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-
-          y.domain([d3.min(data, function(d) { return d[variable]; }), d3.max(data, function(d) { return d[variable]; })]);
-
-          svg.append("g")
+        
+        
+        var x;
+        if(x_var == 'time'){
+            console.log(data[0].time)
+            x = d3.scaleTime()
+                .domain([data[0].time, data[data.length-1].time])
+                .range([0, width]);
+            svg.append("g")
               .attr("class", "axis axis--x")
               .attr("transform", "translate(0," + height + ")")
               .call(d3.axisBottom()
                   .scale(x)
                   .tickFormat(d3.utcFormat("%I:%M %p")));
+        }else{
+            x = d3.scaleLinear()
+                .range([0, width]);
+            x.domain([d3.min(data, function(d) { return d[x_var]; }), d3.max(data, function(d) { return d[x_var]; })]);
+            svg.append("g")
+              .attr("class", "axis axis--x")
+              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom()
+                  .scale(x))
+        }   
+        var y = d3.scaleLinear()
+            .range([height, 0]);
+        
+          y.domain([d3.min(data, function(d) { return d[y_var]; }), d3.max(data, function(d) { return d[y_var]; })]);
+        
+
+
 
            
             
@@ -271,14 +340,13 @@
               .data(data)
             .enter().append("path")
               .attr("transform", function(d) {
-              
-                      if(isNaN(d[variable])){
-                        return "translate(" + x(d.time) + "," + y(0) + ")"
-                          }else{
-                            var a = new Date(null);
-                            a.setSeconds(d.time/1000 +3600)
-              return "translate(" + x(a) + "," + y(d[variable]) + ")"
-                          };
+                      if(isNaN(d[y_var])){
+                          d[y_var] = 0
+                      }
+                        if(isNaN(d[x_var])){
+                          d[x_var] = 0
+                      }
+                        return "translate(" + x(d[x_var]) + "," + y(d[y_var]) + ")"
           })
               .attr("d", d3.symbol()
                   .size(40));
@@ -300,43 +368,31 @@
 
             
             
-            
+            if(x_var == 'time'){
             
             var line = d3.line()
             .x(function(d) { 
-                
-                var a = new Date(null);
-                a.setSeconds(d.time/1000 +3600)
-                return x(a); })
+                return x(d[x_var]); })
             .y(function(d) { 
-                if(isNaN(d[variable]))
-                    return y(d3.min(extracted))
+                if(isNaN(d[y_var]))
+                    return 0
                 else
-                    return y(d[variable]); });
+                    return y(d[y_var]); });
+            svg.append("path")
+                 .datum(data)
+                  .attr("class", "line")
+                  .attr("d", line);
+            }
+            
+    
+    
+    chart_vars = {
+        x: x_var,
+        y: y_var
+    }
+            
 
-            
-    svg.append("path")
-     .datum(data)
-      .attr("class", "line")
-      .attr("d", line);
-            
-            
-        function type(d) {
-          d.rate = +d.count / 327 * 60; // January 8 to November 30
-//          d.time = parseTime(d.time);
-          d.time.setUTCHours((d.time.getUTCHours() + 24 - 7) % 24);
-          return d;
-        }
-
-          
-          
-          
-          
-          
-          
-          
-      }
-        
+    }
         
    
       
