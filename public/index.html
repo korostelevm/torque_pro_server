@@ -97,7 +97,12 @@
    var map_items = [];
    var sessions;        
    var meta;    
-   var chart_vars = {}
+   var chart_vars = {};
+   
+   var raw_data = [];
+   var sensors = [];
+    
+   var bounds;
     $(document).ready(function(){
  
     
@@ -112,20 +117,35 @@
                         var date = new Date(null);
                         date.setSeconds(ses/1000 + 3600)
                         date = date.format('m/d/yy h:MM TT')
+                         var $trip = $('<div>').addClass('button-group') 
                          var $btn = $('<div>').html(meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
-                            .attr('style', '    margin: 0 0 0.2rem 0;')
-                            .attr('class', 'button expanded session_btn')
+                            .attr('style', 'width:80%;      margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button  session_btn sensor_btn')
                             .on('click', function(){
+                                $('.map_add_btn').removeClass('success')
+                                $('#session_btn_map_add'+ses).addClass('success')
                                 console.log(ses)
-                                display(ses)
+                                display(ses,true)
+                                
                             })
+                        
+                         var $btn_map_add = $('<div>').html('+<i class="fa fa-globe" aria-hidden="true"></i>').attr('id', 'session_btn_map_add'+ses)
+                            .attr('style', 'width:20%;    margin: 0 0 0.2rem 0;')
+                            .attr('class', 'button  map_add_btn')
+                            .on('click', function(){
+                                display(ses)
+                                $(this).addClass('success')
+                            })
+                         
                         if (!Foundation.MediaQuery.atLeast('large')) {
                              $btn.addClass('large')
                         }
-                        $('#sessions').append($btn)
+                        $trip.append($btn).append($btn_map_add)
+                        $('#sessions').append($trip)
                         
                     })
-                    display(sessions[0])
+                    display(sessions[0],true)
+                    $('#session_btn_map_add'+sessions[0]).addClass('success')
                 })
    
         
@@ -133,33 +153,45 @@
         
         
     })
-
-    // sensors buttons
-    function display(session){
-        $('.session_btn').removeClass('success')
-        $('#session_btn_'+session).addClass('success')
+    var deg_sensors = ['k5', 'k3c', 'k3d', 'k46', 'kf']
+    var dist_sensors = ['kff1204', 'kff1237', 'kff1001', 'kd']
+    function display(session, first_time){
+  
         
        $.getJSON( "http://mikekorostelev.com/data",
                   {
                     session: session
                   },
                   function( res ) {
-                //console.log(res)
-                    res.data = _.sortBy(res.data,'time')
+                    if(first_time){
+                        raw_data = []
+                        sensors = res.sensors
+                    }
                     _.each(res.data, function(value, key) {
                         _.each(res.sensors, function(s){
                                 value[s.id] = Number(value[s.id])
+                                if(deg_sensors.indexOf(s.id)!== -1){
+                                    value[s.id] = value[s.id] * 9/5 + 32
+                                }
+                                if(dist_sensors.indexOf(s.id)!== -1){
+                                    value[s.id] = value[s.id] * 0.621371
+                                }
                         })
                         value['lat'] = Number(value.kff1006);
                         value['lng'] = Number(value.kff1005);
-                        
+                        value['time_seconds'] = value.time.$date/1000 +3600;
                         var a = new Date(null);
                         a.setSeconds(value.time.$date/1000 +3600)
                         value['time'] = a;
+                        raw_data.push(value)
                     });
+                    raw_data = _.sortBy(raw_data,'time_seconds')
+
                     
                     
-                        
+                    sensors = _.intersection(sensors, res.sensors)
+           
+           
                     $('#sensors').empty()
                     res.sensors = _.sortBy(res.sensors, function(a) {
                         return a.name;
@@ -170,8 +202,9 @@
                             .attr('style', 'width:80%;    margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  sensor_btn')
                             .on('click', function(){
-                                console.log(s)
-                                initMap(res.data,s['id'])
+                                    var y_var = s['id'];
+                                    updateMap(raw_data, s['id'], 'time')
+                                    makeChart(raw_data, 'time', y_var)
                             })
                          var $btn_x = $('<div>').html('x').attr('id', 'sensor_btn_x'+s.id)
                             .attr('style', 'width:10%;    margin: 0 0 0.2rem 0;')
@@ -180,16 +213,18 @@
                                 console.log(s)
                                     var x_var = s['id'];
                                     var y_var = chart_vars.y;
-                                  makeChart(res.data, x_var, y_var)
+                                  makeChart(raw_data, x_var, y_var)
                             })
                          var $btn_y = $('<div>').html('y').attr('id', 'sensor_btn_y'+s.id)
                             .attr('style', 'width:10%;    margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  sensor_btn')
                             .on('click', function(){
-                                    x_var = chart_vars.x;
-                                    y_var = s['id'];
-                                  makeChart(res.data, x_var, y_var)
+                                    var x_var = chart_vars.x;
+                                    var y_var = s['id'];
+                                  makeChart(raw_data, x_var, y_var)
                             })
+                         
+
                          
                          console.log(Foundation.MediaQuery.current)
                          if (!Foundation.MediaQuery.atLeast('large')) {
@@ -206,35 +241,44 @@
                         $('#sensors').append($sensor)
                         
                     })
-//                    mapBoxMap(res.data,res.sensors)
-                    initMap(res.data,'kff1001',true)
-                    
-                    
+                    if(first_time)
+                        initMap(raw_data,'kff1001',true)
+           
+                    updateMap(raw_data,'kff1001',first_time)
+                    makeChart(raw_data, 'time', 'kff1001')
                     
                 })
     }
 
         
     function initMap(data,variable, init) {
+        if(init){
+            map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 12,
+              center: data[data.length%2],
+              mapTypeId: 'terrain'
+            });
+//        }else{
+
+            bounds = new google.maps.LatLngBounds()
+        }
+        
+        
+          
+          makeChart(data, 'time', variable)
+      }
+    
+    function updateMap(data, variable, clear){
         $('.sensor_btn').removeClass('success')
         $('#sensor_btn_'+variable).addClass('success')
         
-        
-        if(init){
-        map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 12,
-          center: data[data.length%2],
-          mapTypeId: 'terrain'
-        });
-        }else{
+        console.log(data.length)
+        if(clear){
             _.each(map_items,function(i){
                 i.setMap(null)
             })
             map_items = []
         }
-//        variable = 'kff1239'
-          
-        
         var extracted = _.pluck(data,variable)
         var _range = ["red",  "lightgreen"];
         var color = d3.scaleLinear()
@@ -242,7 +286,7 @@
         .range(_range)
         
         
-        var bounds = new google.maps.LatLngBounds();
+        
         
         var lines = [];
         var colors = []
@@ -256,6 +300,10 @@
                 lines.push(buf)   
                 colors.push(color(m[variable]))
                 buf = [last, m];
+            }
+            var dd = getDistanceFromLatLonInKm(m.lat,m.lng,last.lat,last.lng)
+            if(dd > 1){
+                buf = [];
             }
             last =  _.clone(m)
             
@@ -272,12 +320,9 @@
           })
 
         
-             
+            
             map.fitBounds(bounds);
-          
-          makeChart(data, 'time', variable)
-      }
-    
+    }
     
     function makeChart(data, x_var, y_var){
         $('.sensor_btn').removeClass('success')
@@ -394,8 +439,22 @@
 
     }
         
-   
-      
+   function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+      var R = 6371; // Radius of the earth in km
+      var dLat = deg2rad(lat2-lat1);  // deg2rad below
+      var dLon = deg2rad(lon2-lon1); 
+      var a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2)
+        ; 
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+      var d = R * c; // Distance in km
+      return d;
+    }
+      function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
 
     </script>
 

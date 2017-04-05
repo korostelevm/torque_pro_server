@@ -163,7 +163,7 @@ class SessionHandler(tornado.web.RequestHandler):
         for a in sessions:
             if a['session'] in session_ids:
                 continue;
-            distance =  float(a['kff1204']) 
+            distance =  float(a['kff1204']) * 0.621371
             duration =  float(a['kff1266'])
             email = a['email'] if 'email' in a else 'anon'
             sessions_meta[a['session']] = {'distance': distance, 'time': duration, 'email':email}
