@@ -63,15 +63,7 @@ class MainHandler(tornado.web.RequestHandler):
     
     def get(self):
         global sensors
-#         print self.request
-#         print self.request.body
-#         print self.request.arguments
-#         data = json.dumps({ k: self.get_argument(k) for k in self.request.arguments })
-
         data = { k: self.get_argument(k) for k in self.request.arguments }
-#         print data.keys()
-#         print data
-        # meta
         email = data['eml']
         session = data['session']
         t = data['time']
@@ -121,10 +113,31 @@ class MainHandler(tornado.web.RequestHandler):
                 if key in data:
                     sample[sensors[key]['id']] = data[key] 
             logs_db.TripData.insert_one(sample)
+        try:
+            trip = {
+                'distance': float(sample['kff1204']) * 0.621371,
+                'time': float(sample['kff1266']),
+                'email':sample['email'],
+                'session': sample['session'], 
+                'start':[sample['kff1006'], sample['kff1005']],
+                'end':[sample['kff1006'], sample['kff1005']]
+             }
+            logs_db.Trip.update_one(
+                                    {"session": sample["session"]},
+                                    {
+                                        "$setOnInsert": sample,
+                                        "$set": {'end':[sample['kff1006'], sample['kff1005']],'distance': float(sample['kff1204']) * 0.621371, 'time': float(sample['kff1266']) },
+                                    },
+                                    upsert=True,
+                                )
+        except Exception, e:
+            traceback.print_exc()
+            print 'couldnt insert', sample
+            pass
         
+
+            
         
-        
-#         print timestamp
         self.write("OK!")
 
 
@@ -157,18 +170,41 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
-        sessions = logs_db.TripData.find({'kff1204':{'$ne':None},'kff1266':{'$ne':None}}).sort('time',-1)
         session_ids = []
         sessions_meta = {}
+        sessions = logs_db.Trip.find({},{'_id':0}).sort('session')
         for a in sessions:
-            if a['session'] in session_ids:
-                continue;
-            distance =  float(a['kff1204']) * 0.621371
-            duration =  float(a['kff1266'])
-            email = a['email'] if 'email' in a else 'anon'
-            sessions_meta[a['session']] = {'distance': distance, 'time': duration, 'email':email}
+            if a['time'] < 10:
+                logs_db.TripData.delete_many({'session':a['session']})
+                logs_db.Trip.delete_many({'session':a['session']})
+                continue
+            sessions_meta[a['session']] = a
+            sessions_meta[a['session']]['start_from_home'] =  vincenty(a['start'], [40.117357, -75.037635]).miles
             session_ids.append(a['session'])
+          
+#         sessions = logs_db.TripData.find({'kff1204':{'$ne':None},'kff1266':{'$ne':None}})
+#         session_ids = []
+#         sessions_meta = {}
+#         for a in sessions:
+#             distance =  float(a['kff1204']) * 0.621371
+#             duration =  float(a['kff1266'])
+# 	    email = a['email'] if 'email' in a else 'anon'
+#             if a['session'] not in session_ids:
+#                 sessions_meta[a['session']] = {'distance': distance,
+#                                                 'time': duration,
+#                                                 'email':email,
+#                                                 'session': a['session'], 
+#                                                 'start':[a['kff1006'], a['kff1005']],
+#                                                 'end':[a['kff1006'], a['kff1005']]
+#                                                  }
+#                 session_ids.append(a['session'])
+#             if sessions_meta[a['session']]['time'] < duration:
+#                 sessions_meta[a['session']]['time'] = duration
+#                 sessions_meta[a['session']]['distance'] = distance
+#                 sessions_meta[a['session']]['end'] = [a['kff1006'], a['kff1005']]
+#                 
         sessions = {'sessions':session_ids, 'meta':sessions_meta}
+        
         self.write(json.dumps(sessions))
         
 

@@ -112,14 +112,15 @@
                   function( res ) {
              meta = res.meta
              console.log(res)
-             sessions = res.sessions
+             sessions = res.sessions.reverse()
                     $.each(sessions, function(i,ses){
                         var date = new Date(null);
                         date.setSeconds(ses/1000 + 3600)
                         date = date.format('m/d/yy h:MM TT')
                          var $trip = $('<div>').addClass('button-group') 
-                         var $btn = $('<div>').html(meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
-                            .attr('style', 'width:80%;      margin: 0 0 0.2rem 0;')
+                         var from_home = meta[ses].start_from_home < 3 ? '<i style="float:left; background-color:black; color:orange" class="fa fa-home" aria-hidden="true"></i>&nbsp;' : ''
+                         var $btn = $('<div>').html(from_home + meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
+                            .attr('style', 'width:85%;      margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  session_btn sensor_btn')
                             .on('click', function(){
                                 $('.map_add_btn').removeClass('success')
@@ -129,8 +130,8 @@
                                 
                             })
                         
-                         var $btn_map_add = $('<div>').html('+<i class="fa fa-globe" aria-hidden="true"></i>').attr('id', 'session_btn_map_add'+ses)
-                            .attr('style', 'width:20%;    margin: 0 0 0.2rem 0;')
+                         var $btn_map_add = $('<div>').html('<i class="fa fa-globe" aria-hidden="true"></i>').attr('id', 'session_btn_map_add'+ses)
+                            .attr('style', 'width:15%;    margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  map_add_btn')
                             .on('click', function(){
                                 display(ses)
@@ -338,6 +339,13 @@
         
         
         $('#chart').empty()
+        var x_sensor = _.findWhere(sensors,{'id':x_var})
+        if(!x_sensor){
+            x_sensor = {name:'time'}
+        }
+        var y_sensor = _.findWhere(sensors,{'id':y_var})
+        $('.ax_labels').remove()
+        $('#chart').append($('<div>').html('x: '+ x_sensor.name + '&nbsp;&nbsp; y: '+ y_sensor.name).attr('style','text-align:center; position:absolute; top:0; width:100%; z-index:10; color:white; background-color:rgba(0, 0, 0, 0.74);').addClass('ax_labels'))
         var svg = d3.select("#chart").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
@@ -378,7 +386,7 @@
 
            
             
-            
+            var ses_color = d3.scaleOrdinal(d3.schemeCategory10);
           svg.append("g")
               .attr("class", "dots")
             .selectAll("path")
@@ -394,7 +402,10 @@
                         return "translate(" + x(d[x_var]) + "," + y(d[y_var]) + ")"
           })
               .attr("d", d3.symbol()
-                  .size(40));
+                  .size(40))
+              .style("fill", function(d){
+              return ses_color(d.session)
+          });
 
           var tick = svg.append("g")
               .attr("class", "axis axis--y")
