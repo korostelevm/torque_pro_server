@@ -189,8 +189,11 @@
                     raw_data = _.sortBy(raw_data,'time_seconds')
 
                     
-                    
+                    console.log(sensors)
+                    console.log(res.sensors)
                     sensors = _.intersection(sensors, res.sensors)
+                    if (!sensors.length)
+                        sensors = res.sensors
            
            
                     $('#sensors').empty()
@@ -246,7 +249,7 @@
                         initMap(raw_data,'kff1001',true)
            
                     updateMap(raw_data,'kff1001',first_time)
-                    makeChart(raw_data, 'time', 'kff1001')
+                    makeChart(raw_data, 'kff1266', 'kff1001')
                     
                 })
     }
@@ -266,7 +269,7 @@
         
         
           
-          makeChart(data, 'time', variable)
+          makeChart(data, 'kff1266', variable)
       }
     
     function updateMap(data, variable, clear){
@@ -344,6 +347,9 @@
             x_sensor = {name:'time'}
         }
         var y_sensor = _.findWhere(sensors,{'id':y_var})
+        console.log(x_sensor)
+        console.log(y_sensor)
+        console.log(sensors)
         $('.ax_labels').remove()
         $('#chart').append($('<div>').html('x: '+ x_sensor.name + '&nbsp;&nbsp; y: '+ y_sensor.name).attr('style','text-align:center; position:absolute; top:0; width:100%; z-index:10; color:white; background-color:rgba(0, 0, 0, 0.74);').addClass('ax_labels'))
         var svg = d3.select("#chart").append("svg")
