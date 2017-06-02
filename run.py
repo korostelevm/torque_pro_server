@@ -12,15 +12,15 @@ from geopy.distance import vincenty
 host = "localhost:27017";
 mongo_client = MongoClient(host)
 logs_db = mongo_client.torque
-
+import traceback
 
 
 import json
 import time
 import datetime
+import stats
 
-
-
+liveWebSockets = set()
 sensors = {
 #                 'kff1005':{  
 #                     'id':'kff1005',
@@ -91,16 +91,12 @@ class MainHandler(tornado.web.RequestHandler):
         
         if 'userUnitff1007' in self.request.arguments:
             for key, value in sensors.iteritems():
-#                 print key
                 if not logs_db.Sensors.find_one({'id':key}):
-#                     print 'inserting'
                     a = logs_db.Sensors.insert_one(value)
-#                     print a
             
             
         
         sensor_data = [sensors[key]['short_name'] + ' ' + data[key] for key in sensors if key in data]
-#         print timestamp, session, sensor_data
         
         
         if len(sensor_data) > 0:
@@ -113,28 +109,29 @@ class MainHandler(tornado.web.RequestHandler):
                 if key in data:
                     sample[sensors[key]['id']] = data[key] 
             logs_db.TripData.insert_one(sample)
-        try:
-            trip = {
-                'distance': float(sample['kff1204']) * 0.621371,
-                'time': float(sample['kff1266']),
-                'email':sample['email'],
-                'session': sample['session'], 
-                'start':[sample['kff1006'], sample['kff1005']],
-                'end':[sample['kff1006'], sample['kff1005']]
-             }
-            logs_db.Trip.update_one(
-                                    {"session": sample["session"]},
-                                    {
-                                        "$setOnInsert": sample,
-                                        "$set": {'end':[sample['kff1006'], sample['kff1005']],'distance': float(sample['kff1204']) * 0.621371, 'time': float(sample['kff1266']) },
-                                    },
-                                    upsert=True,
-                                )
-        except Exception, e:
-            traceback.print_exc()
-            print 'couldnt insert', sample
-            pass
-        
+            try:
+                trip = {
+    #                 'distance': 
+    #                 'time': float(sample['kff1266']),
+                    'email':sample['email'],
+                    'session': sample['session'], 
+                    'start':[sample['kff1006'], sample['kff1005']],
+    #                 'end':[sample['kff1006'], sample['kff1005']]
+                 }
+                logs_db.Trip.update_one(
+                                        {"session": trip["session"]},
+                                        {
+                                            "$setOnInsert": trip,
+                                            "$set": {'end':[sample['kff1006'], sample['kff1005']],'distance': float(sample['kff1204']) * 0.621371, 'time': float(sample['kff1266']) },
+                                        },
+                                        upsert=True,
+                                    )
+                server.add_callback(webSocketSendMessage, json.dumps(sample,default=json_util.default))
+            except Exception, e:
+                traceback.print_exc()
+                print 'couldnt insert'
+                pass
+            
 
             
         
@@ -170,17 +167,24 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
+        
+        
+#       
         session_ids = []
         sessions_meta = {}
         sessions = logs_db.Trip.find({},{'_id':0}).sort('session')
+        
         for a in sessions:
-            if a['time'] < 10:
-                logs_db.TripData.delete_many({'session':a['session']})
-                logs_db.Trip.delete_many({'session':a['session']})
-                continue
-            sessions_meta[a['session']] = a
-            sessions_meta[a['session']]['start_from_home'] =  vincenty(a['start'], [40.117357, -75.037635]).miles
-            session_ids.append(a['session'])
+            try:
+                if a['time'] < 10:
+                    logs_db.TripData.delete_many({'session':a['session']})
+                    logs_db.Trip.delete_many({'session':a['session']})
+                    continue
+                sessions_meta[a['session']] = a
+                sessions_meta[a['session']]['start_from_home'] =  vincenty(a['start'], [40.117357, -75.037635]).miles
+                session_ids.append(a['session'])
+            except Exception, e:
+                pass
           
 #         sessions = logs_db.TripData.find({'kff1204':{'$ne':None},'kff1266':{'$ne':None}})
 #         session_ids = []
@@ -228,6 +232,7 @@ class DataHandler(tornado.web.RequestHandler):
         
         available_sensors = list(set([i for s in [d.keys() for d in data] for i in s]))
         sensors = list(logs_db.Sensors.find({'id':{'$in':available_sensors}}))
+#         sensors = list(logs_db.Sensors.find({}))
 #         
 #         for i, sample in enumerate(data):
 #             for j, m in sample.iteritems():
@@ -236,6 +241,7 @@ class DataHandler(tornado.web.RequestHandler):
                 
         res = {'data':data, 'sensors':sensors}
         
+#         server.add_callback(webSocketSendMessage, "build your data here")
         
         self.write(json.dumps(res,default=json_util.default))
         
@@ -266,35 +272,67 @@ class UpdateHandler(tornado.web.RequestHandler):
         
 import tornado.websocket as websocket
 class SocketHandler(websocket.WebSocketHandler):
+#     self.user_session = ''
     def check_origin(self, origin):
         return True
+       
+#     def set_default_headers(self):
+#         self.set_header("Access-Control-Allow-Origin", "*")
+#         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+#         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
      
-    def open(self, *args, **kwargs):
-        self.write_message(u"You said: " + message)
-        print 'socket open'
+    def open(self):
+        self.set_nodelay(True)
+        liveWebSockets.add(self)
+        pass
+ 
+#     def on_message(self, message):
+#         self.write_message(u"Your message was: " + message)
+#  
+#     def on_close(self):
+#         pass
          
   
     def on_close(self):
 #         pika.log.info("WebSocket closed")
         print 'socket close'
-        self.application.pc.remove_event_listener(self)
+        
      
     def on_message(self, message):
         print 'cleint said: ', message
+        self.user_session = message;
+        
+        
+        
         self.write_message(u"You said: " + message)
+
+def webSocketSendMessage(message):
+    removable = set()
+    for ws in liveWebSockets:
+        if not ws.ws_connection or not ws.ws_connection.stream.socket:
+            removable.add(ws)
+        else:
+            ws.write_message(message)
+    for ws in removable:
+        liveWebSockets.remove(ws)
+
+
 
 def make_app():
     return tornado.web.Application([
 #         (r'/', tornado.web.StaticFileHandler,  {'path':'public/index.html'}),
+        (r'/socket', SocketHandler),
         (r"/push/*", MainHandler),
         (r"/sessions", SessionHandler),
         (r"/data*", DataHandler),
         (r"/update*", UpdateHandler),
         (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
-        (r'/ws', SocketHandler),
-    ])
+        
+    ],compress_response=True)
 
 if __name__ == "__main__":
     app = make_app()
     app.listen(80)
-    tornado.ioloop.IOLoop.current().start()
+    server = tornado.ioloop.IOLoop.instance()
+    server.start()
+#     tornado.ioloop.IOLoop.current().start()

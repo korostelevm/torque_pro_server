@@ -37,20 +37,36 @@
     <div id = 'sensors' ></div>
 </div>    
 
-            <div id = 'chart'  style='width: 100%; height: 20vh; position:absolute; z-index:1; background: rgba(255,255,255,0.5)'></div>
+            <div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
      
      <button type="button" class="button control_btn alert close_btn hide" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px; right: 0px"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
      <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px;">Trips</button>
      <button type="button" class="button control_btn main_btn sensors_btn" style= "bottom: 0px; position: absolute; left:50%; transform:translateX(-50%); z-index:1;"  data-target="offCanvasRight">Sensors</button>
-            <div id='map'  style='width: 100%;'></div>
+     
+        <ul class="tabs" data-tabs id="example-tabs">
+          <li class="tabs-title is-active"><a id='stats_tab' href="#panel_stats" aria-selected="true">stats</a></li>
+          <li class="tabs-title"><a id='map_tab' href="#panel_map">map</a></li>
+        </ul>
+     <div class="tabs-content" data-tabs-content="example-tabs">
+          <div class="tabs-panel is-active" id="panel_stats">
+              <div id='stats'  style='width: 100%;'></div>
+          </div>
+          <div class="tabs-panel" id="panel_map">
+              <div id='map'  style='width: 100%;'></div>
+          </div>
+        </div>
+     
+            
     </div>
 </div>
 </body>
     
 <script>
-    $('#map').css('height', $(window).height())
+    $('#map').css('height', $(window).height()*0.6)
+    $('#chart').css('height', $(window).height()*0.4)
+//    $('#map').css('margin-top', $(window).height()*0.6)
     $(document).foundation();
     $('.close_btn').on('click',function(){
           $('.off-canvas').foundation('close');
@@ -68,6 +84,11 @@
         $('.close_btn').removeClass('hide');
         
     })
+
+    
+    
+    
+    
     
     if (!Foundation.MediaQuery.atLeast('large')) {
              $('.button').addClass('large')
@@ -97,21 +118,34 @@
    var map_items = [];
    var sessions;        
    var meta;    
-   var chart_vars = {};
-   
+   var ses_meta;    
+   var chart_vars = {x:'kff1266', y:'kff1001'};
+   var ws;
    var raw_data = [];
    var sensors = [];
-    
+    var active_session;
    var bounds;
+    
+    
     $(document).ready(function(){
- 
+         $('#map_tab').on('click',function(){
+            console.log(bounds)
+             if(!bounds){
+                initMap(raw_data, chart_vars.y,true)    
+                updateMap(raw_data,chart_vars.y,true)
+           
+//                    makeChart(raw_data, chart_vars.x, )
+             }
+             
+        })
+    
     
          $.getJSON( "http://mikekorostelev.com/sessions",
                   {
                   },
                   function( res ) {
              meta = res.meta
-             console.log(res)
+             //console.log(res)
              sessions = res.sessions.reverse()
                     $.each(sessions, function(i,ses){
                         var date = new Date(null);
@@ -119,13 +153,14 @@
                         date = date.format('m/d/yy h:MM TT')
                          var $trip = $('<div>').addClass('button-group') 
                          var from_home = meta[ses].start_from_home < 3 ? '<i style="float:left; background-color:black; color:orange" class="fa fa-home" aria-hidden="true"></i>&nbsp;' : ''
-                         var $btn = $('<div>').html(from_home + meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
+                         var car = meta[ses].car == 'wrangler' ? '&nbsp;<i style="float:left; background-color:black; color:orange" class="fa fa-truck" aria-hidden="true"></i>&nbsp;' : ''
+                         var $btn = $('<div>').html(from_home + car+ meta[ses].distance.toFixed(2) + ' miles' + ' | ' + (meta[ses].time/60).toFixed(2) + ' mins' + ' <br> <small>'+date+'</small>').attr('id','session_btn_'+ses)
                             .attr('style', 'width:85%;      margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  session_btn sensor_btn')
                             .on('click', function(){
                                 $('.map_add_btn').removeClass('success')
                                 $('#session_btn_map_add'+ses).addClass('success')
-                                console.log(ses)
+                                //console.log(ses)
                                 display(ses,true)
                                 
                             })
@@ -158,7 +193,7 @@
     var dist_sensors = ['kff1204', 'kff1237', 'kff1001', 'kd']
     function display(session, first_time){
   
-        
+       ses_meta =  meta[session]
        $.getJSON( "http://mikekorostelev.com/data",
                   {
                     session: session
@@ -167,6 +202,7 @@
                     if(first_time){
                         raw_data = []
                         sensors = res.sensors
+                        console.log(sensors.length)
                     }
                     _.each(res.data, function(value, key) {
                         _.each(res.sensors, function(s){
@@ -181,16 +217,16 @@
                         value['lat'] = Number(value.kff1006);
                         value['lng'] = Number(value.kff1005);
                         value['time_seconds'] = value.time.$date/1000 +3600;
-                        var a = new Date(null);
-                        a.setSeconds(value.time.$date/1000 +3600)
-                        value['time'] = a;
+//                        var a = new Date(null);
+//                        a.setSeconds(value.time.$date/1000 +3600)
+//                        value['time'] = a;
                         raw_data.push(value)
                     });
                     raw_data = _.sortBy(raw_data,'time_seconds')
 
                     
-                    console.log(sensors)
-                    console.log(res.sensors)
+                    //console.log(sensors)
+                    //console.log(res.sensors)
                     sensors = _.intersection(sensors, res.sensors)
                     if (!sensors.length)
                         sensors = res.sensors
@@ -207,14 +243,17 @@
                             .attr('class', 'button  sensor_btn')
                             .on('click', function(){
                                     var y_var = s['id'];
-                                    updateMap(raw_data, s['id'], 'time')
-                                    makeChart(raw_data, 'time', y_var)
+                                
+                                    if($('#panel_map').hasClass('is-active'))
+                                        updateMap(raw_data, s['id'], 'kff1266')
+                                
+                                    makeChart(raw_data, 'kff1266', y_var)
                             })
                          var $btn_x = $('<div>').html('x').attr('id', 'sensor_btn_x'+s.id)
                             .attr('style', 'width:10%;    margin: 0 0 0.2rem 0;')
                             .attr('class', 'button  sensor_btn')
                             .on('click', function(){
-                                console.log(s)
+                                //console.log(s)
                                     var x_var = s['id'];
                                     var y_var = chart_vars.y;
                                   makeChart(raw_data, x_var, y_var)
@@ -230,7 +269,7 @@
                          
 
                          
-                         console.log(Foundation.MediaQuery.current)
+                         //console.log(Foundation.MediaQuery.current)
                          if (!Foundation.MediaQuery.atLeast('large')) {
                              $btn.addClass('large')
                              $btn_y.addClass('large')
@@ -245,11 +284,16 @@
                         $('#sensors').append($sensor)
                         
                     })
-                    if(first_time)
-                        initMap(raw_data,'kff1001',true)
+                    if(first_time){
+                        active_session = session;
+                        if($('#panel_map').hasClass('is-active'))
+                            initMap(raw_data,'kff1001',true)
+                        }
            
-                    updateMap(raw_data,'kff1001',first_time)
-                    makeChart(raw_data, 'kff1266', 'kff1001')
+                    if($('#panel_map').hasClass('is-active'))           
+                        updateMap(raw_data,'kff1001',first_time)
+           
+                    makeChart(raw_data, chart_vars.x, chart_vars.y)
                     
                 })
     }
@@ -265,6 +309,7 @@
 //        }else{
 
             bounds = new google.maps.LatLngBounds()
+            
         }
         
         
@@ -276,7 +321,7 @@
         $('.sensor_btn').removeClass('success')
         $('#sensor_btn_'+variable).addClass('success')
         
-        console.log(data.length)
+        //console.log(data.length)
         if(clear){
             _.each(map_items,function(i){
                 i.setMap(null)
@@ -333,9 +378,9 @@
         $('#sensor_btn_'+y_var).addClass('success')
         $('#sensor_btn_x'+x_var).addClass('success')
         $('#sensor_btn_y'+y_var).addClass('success')
-        console.log(data)
-        console.log(x_var)
-        console.log(y_var)
+        //console.log(data)
+        //console.log(x_var)
+        //console.log(y_var)
         var margin = {top: 30, right: 10, bottom: 30, left: 30},
             width = $('#chart').width() - margin.left - margin.right,
             height = $('#chart').height() - margin.top - margin.bottom;
@@ -344,12 +389,16 @@
         $('#chart').empty()
         var x_sensor = _.findWhere(sensors,{'id':x_var})
         if(!x_sensor){
+//            x_sensor = _.findWhere(sensors,{'id':'kff1266'})
             x_sensor = {name:'time'}
         }
         var y_sensor = _.findWhere(sensors,{'id':y_var})
-        console.log(x_sensor)
-        console.log(y_sensor)
-        console.log(sensors)
+        if(!y_sensor){
+            y_sensor = _.findWhere(sensors,{'id':'kff1001'})
+        }
+        //console.log(x_sensor)
+        //console.log(y_sensor)
+        //console.log(sensors)
         $('.ax_labels').remove()
         $('#chart').append($('<div>').html('x: '+ x_sensor.name + '&nbsp;&nbsp; y: '+ y_sensor.name).attr('style','text-align:center; position:absolute; top:0; width:100%; z-index:10; color:white; background-color:rgba(0, 0, 0, 0.74);').addClass('ax_labels'))
         var svg = d3.select("#chart").append("svg")
@@ -362,7 +411,7 @@
         
         var x;
         if(x_var == 'time'){
-            console.log(data[0].time)
+            //console.log(data[0].time)
             x = d3.scaleTime()
                 .domain([data[0].time, data[data.length-1].time])
                 .range([0, width]);
@@ -378,17 +427,28 @@
             x.domain([d3.min(data, function(d) { return d[x_var]; }), d3.max(data, function(d) { return d[x_var]; })]);
             svg.append("g")
               .attr("class", "axis axis--x")
-              .attr("transform", "translate(0," + height + ")")
-              .call(d3.axisBottom()
-                  .scale(x))
+//              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom().ticks(15)
+                  .scale(x)
+                   .tickSize(height)
+                   )
+                .select(".tick:last-of-type")
+            
         }   
         var y = d3.scaleLinear()
             .range([height, 0]);
         
+        
           y.domain([d3.min(data, function(d) { return d[y_var]; }), d3.max(data, function(d) { return d[y_var]; })]);
         
 
-
+          var tick = svg.append("g")
+              .attr("class", "axis axis--y")
+              .call(d3.axisLeft().ticks(15)
+                  .scale(y)
+                  .tickSize(-width)
+                  )
+            .select(".tick:last-of-type");
 
            
             
@@ -397,65 +457,75 @@
               .attr("class", "dots")
             .selectAll("path")
               .data(data)
-            .enter().append("path")
-              .attr("transform", function(d) {
-                      if(isNaN(d[y_var])){
-                          d[y_var] = 0
-                      }
-                        if(isNaN(d[x_var])){
-                          d[x_var] = 0
-                      }
-                        return "translate(" + x(d[x_var]) + "," + y(d[y_var]) + ")"
+            .enter()
+              .append("circle")
+              
+                .attr('cx', function(d){
+              if(!isNaN(d[x_var]))
+                        return x(d[x_var])
           })
-              .attr("d", d3.symbol()
-                  .size(40))
+              .attr('cy', function(d){
+              if(!isNaN(d[y_var]))
+                        return y(d[y_var])
+          })
+        .attr('r',5)
+//          .append("path")
+//              .attr("transform", function(d) {
+//              if(!isNaN(d[y_var]) && !isNaN(d[x_var])){
+//                        return "translate(" + x(d[x_var]) + "," + y(d[y_var]) + ")"
+//              }
+//          })
+//              .attr("d", d3.symbol()
+//                  .size(40))
               .style("fill", function(d){
               return ses_color(d.session)
           });
-
-          var tick = svg.append("g")
-              .attr("class", "axis axis--y")
-              .call(d3.axisLeft()
-                  .scale(y)
-                  .tickSize(-width)
-                  )
-            .select(".tick:last-of-type");
-
-          var title = tick.append("text")
-              .attr("dy", ".32em")
-              .text("tweets per hour");
-
-          tick.select("line")
-              .attr("x1", title.node().getBBox().width + 6);
+        var y_data = _.pluck(data, y_var);
+        var $stats_mean = $('<div>').addClass('stats').html('mean '+ Math.round(ses_meta[y_var+'_mean']*100)/100)
+        $('#stats').append($stats_mean)
+        var $stats_mean = $('<div>').addClass('stats').html('var '+ Math.round(ses_meta[y_var+'_var']*100)/100)
+        $('#stats').append($stats_mean)
+        var $stats_mean = $('<div>').addClass('stats').html('std '+ Math.round(ses_meta[y_var+'_std']*100)/100)
+        $('#stats').append($stats_mean)
+        
 
             
-            
-            if(x_var == 'time'){
-            
-            var line = d3.line()
-            .x(function(d) { 
-                return x(d[x_var]); })
-            .y(function(d) { 
-                if(isNaN(d[y_var]))
-                    return 0
-                else
-                    return y(d[y_var]); });
-            svg.append("path")
-                 .datum(data)
-                  .attr("class", "line")
-                  .attr("d", line);
-            }
-            
-    
-    
+
+        sendMsg(active_session)
     chart_vars = {
         x: x_var,
         y: y_var
     }
             
-
+        
     }
         
+ 
+        ws = new WebSocket("ws://mikekorostelev.com/socket");
+
+        ws.onmessage = function(e) {
+            
+//            var data = JSON.parse(e.data)
+            console.log(e.data)
+//           alert(e.data);
+        };
+ 
+        function sendMsg(msg) {
+//            if(!ws.OPEN){
+//                ws.onopen = function(){
+//                    ws.send(active_session);
+//                }
+//            }else{
+                ws.send(msg);
+//            }
+        }
+    
+ function curveFit(data, svg, x_scale, y_scale){
+
+     
+ }
+
+
    function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
       var R = 6371; // Radius of the earth in km
       var dLat = deg2rad(lat2-lat1);  // deg2rad below
