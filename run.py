@@ -167,9 +167,9 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
-	print "getting sessions"        
-	self.write(json.dumps({}))
-	return False
+        print "getting sessions"        
+        self.write(json.dumps({}))
+        return False
         
         stats.calc_stats()
         session_ids = []
