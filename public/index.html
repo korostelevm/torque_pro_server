@@ -50,10 +50,10 @@
           <li class="tabs-title is-active"><a id='map_tab' href="#panel_map">map</a></li>
         </ul>
      <div class="tabs-content" data-tabs-content="example-tabs">
-          <div class="tabs-panel is-active" id="panel_stats">
+          <div class="tabs-panel " id="panel_stats">
               <div id='stats'  style='width: 100%;'></div>
           </div>
-          <div class="tabs-panel" id="panel_map">
+          <div class="tabs-panel is-active" id="panel_map">
               <div id='map'  style='width: 100%;'></div>
           </div>
         </div>
@@ -138,6 +138,8 @@
              }
              
         })
+
+        
     
     
          $.getJSON( `http://${location.hostname}/sessions`,
@@ -294,7 +296,8 @@
                         updateMap(raw_data,'kff1001',first_time)
            
                     makeChart(raw_data, chart_vars.x, chart_vars.y)
-                    
+                    initMap(raw_data, chart_vars.y,true)    
+                    updateMap(raw_data,chart_vars.y,true)
                 })
     }
 
