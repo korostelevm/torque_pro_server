@@ -349,8 +349,8 @@ def make_app():
         (r"/sessions", SessionHandler),
         (r"/data*", DataHandler),
         (r"/update*", UpdateHandler),
-        (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
         (r'/', tornado.web.StaticFileHandler, {'path': './public/index.html'}),
+        (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
         
     ],compress_response=True)
 
