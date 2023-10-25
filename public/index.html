@@ -37,7 +37,7 @@
     <div id = 'sensors' ></div>
 </div>    
 
-<div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
+<div id = 'chart'  style='width: 70%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
         <div class="buttons" style="margin-top: 10px; margin-left: 10px; ">
@@ -50,22 +50,23 @@
             <i class="fa fa-spinner fa-pulse"></i>
         </div>
 
+        <div id="content_area">
+            <div id="chart_off_canvas"></div>
+            <ul class="tabs" data-tabs id="example-tabs">
+            <li class="tabs-title "><a id='stats_tab' href="#panel_stats" aria-selected="true">stats</a></li>
+            <li class="tabs-title is-active"><a id='map_tab' href="#panel_map">map</a></li>
+            </ul>
+        <div class="tabs-content" data-tabs-content="example-tabs">
+            <div class="tabs-panel " id="panel_stats">
+                <div id='stats'  style='width: 100%;'></div>
+            </div>
+            <div class="tabs-panel is-active" id="panel_map">
+                <div id='map'  style='width: 100%;'></div>
+            </div>
+            </div>
+        </div>
+     
             
-    </div>
-    <div id="content_area">
-        <div id="chart_off_canvas"></div>
-        <ul class="tabs" data-tabs id="example-tabs">
-        <li class="tabs-title "><a id='stats_tab' href="#panel_stats" aria-selected="true">stats</a></li>
-        <li class="tabs-title is-active"><a id='map_tab' href="#panel_map">map</a></li>
-        </ul>
-    <div class="tabs-content" data-tabs-content="example-tabs">
-        <div class="tabs-panel " id="panel_stats">
-            <div id='stats'  style='width: 100%;'></div>
-        </div>
-        <div class="tabs-panel is-active" id="panel_map">
-            <div id='map'  style='width: 100%;'></div>
-        </div>
-        </div>
     </div>
 </div>
 </body>
