@@ -74,10 +74,12 @@
 <script>
 
     let set_loading = ()=>{
-        $('#content_area').addClass('loading')
+        $('#spinner').removeClass('hidden')
+        $('#content_area').addClass('hidden')
     }
     let set_done_loading = ()=>{
-        $('#content_area').removeClass('loading')
+        $('#spinner').addClass('hidden')
+        $('#content_area').removeClass('hidden')
     }
 
     $('#map').css('height', $(window).height()*0.4)
