@@ -140,7 +140,7 @@
         })
     
     
-         $.getJSON( "http://mikekorostelev.com/sessions",
+         $.getJSON( "http://ec2-54-197-25-2.compute-1.amazonaws.com/sessions",
                   {
                   },
                   function( res ) {
@@ -194,7 +194,7 @@
     function display(session, first_time){
   
        ses_meta =  meta[session]
-       $.getJSON( "http://mikekorostelev.com/data",
+       $.getJSON( "http://ec2-54-197-25-2.compute-1.amazonaws.com/data",
                   {
                     session: session
                   },
@@ -481,6 +481,10 @@
               return ses_color(d.session)
           });
         var y_data = _.pluck(data, y_var);
+        
+        $('#stats').empty();
+        
+        
         var $stats_mean = $('<div>').addClass('stats').html('mean '+ Math.round(ses_meta[y_var+'_mean']*100)/100)
         $('#stats').append($stats_mean)
         var $stats_mean = $('<div>').addClass('stats').html('var '+ Math.round(ses_meta[y_var+'_var']*100)/100)
@@ -501,13 +505,34 @@
     }
         
  
-        ws = new WebSocket("ws://mikekorostelev.com/socket");
+        ws = new WebSocket("ws://ec2-54-197-25-2.compute-1.amazonaws.com/socket");
 
         ws.onmessage = function(e) {
-            
-//            var data = JSON.parse(e.data)
             console.log(e.data)
-//           alert(e.data);
+            if(e.data[0] == 'Y')
+            	return false
+            var value = JSON.parse(e.data)
+           
+             if(value.session != active_session)
+            	return false
+           	 console.log(value)
+            _.each(sensors, function(s){
+                value[s.id] = Number(value[s.id])
+                if(deg_sensors.indexOf(s.id)!== -1){
+                    value[s.id] = value[s.id] * 9/5 + 32
+                }
+                if(dist_sensors.indexOf(s.id)!== -1){
+                    value[s.id] = value[s.id] * 0.621371
+                }
+        	})
+	        value['lat'] = Number(value.kff1006);
+	        value['lng'] = Number(value.kff1005);
+	        value['time_seconds'] = value.time.$date/1000 +3600;
+	        raw_data.push(value)
+	    	raw_data = _.sortBy(raw_data,'time_seconds')
+			//make_chart()
+          makeChart(raw_data, chart_vars.x, chart_vars.y)
+
         };
  
         function sendMsg(msg) {

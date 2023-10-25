@@ -167,12 +167,15 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
+	print "getting sessions"        
+	self.write(json.dumps({}))
+	return False
         
-        
-#       
+        stats.calc_stats()
         session_ids = []
         sessions_meta = {}
-        sessions = logs_db.Trip.find({},{'_id':0}).sort('session')
+	
+        sessions = logs_db.Trip.find({},{'_id':0}).limit(1).sort('session')
         
         for a in sessions:
             try:
@@ -331,6 +334,7 @@ def make_app():
     ],compress_response=True)
 
 if __name__ == "__main__":
+    print "hello"
     app = make_app()
     app.listen(80)
     server = tornado.ioloop.IOLoop.instance()
