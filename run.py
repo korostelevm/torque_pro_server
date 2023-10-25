@@ -320,15 +320,37 @@ def webSocketSendMessage(message):
 
 
 
+class TestHandler(tornado.web.RequestHandler):
+    
+    
+    
+    def check_origin(self, origin):
+        return True
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    #
+    
+    def get(self):
+       
+        
+        res = {'data':'test'}
+        
+        self.write(json.dumps(res,default=json_util.default))
+        
+
+
 def make_app():
     return tornado.web.Application([
 #         (r'/', tornado.web.StaticFileHandler,  {'path':'public/index.html'}),
+        (r'/test', TestHandler),
         # (r'/socket', SocketHandler),
-        (r"/push/*", MainHandler),
-        (r"/sessions", SessionHandler),
-        (r"/data*", DataHandler),
-        (r"/update*", UpdateHandler),
-        (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
+        # (r"/push/*", MainHandler),
+        # (r"/sessions", SessionHandler),
+        # (r"/data*", DataHandler),
+        # (r"/update*", UpdateHandler),
+        # (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
         
     ],compress_response=True)
 
