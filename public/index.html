@@ -140,7 +140,7 @@
         })
     
     
-         $.getJSON( "http://ec2-54-197-25-2.compute-1.amazonaws.com/sessions",
+         $.getJSON( `http://${location.hostname}/sessions`,
                   {
                   },
                   function( res ) {

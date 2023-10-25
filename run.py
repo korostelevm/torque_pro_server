@@ -344,12 +344,12 @@ class TestHandler(tornado.web.RequestHandler):
 def make_app():
     return tornado.web.Application([
         (r'/test', TestHandler),
-        # (r'/', tornado.web.StaticFileHandler,  {'path':'./public/index.html'}),
-        # (r'/socket', SocketHandler),
-        # (r"/push/*", MainHandler),
+        (r'/', tornado.web.StaticFileHandler,  {'path':'./public/index.html'}),
+        (r'/socket', SocketHandler),
+        (r"/push/*", MainHandler),
         (r"/sessions", SessionHandler),
-        # (r"/data*", DataHandler),
-        # (r"/update*", UpdateHandler),
+        (r"/data*", DataHandler),
+        (r"/update*", UpdateHandler),
         (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
         
     ],compress_response=True)
