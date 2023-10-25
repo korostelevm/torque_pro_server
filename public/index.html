@@ -37,10 +37,10 @@
     <div id = 'sensors' ></div>
 </div>    
 
-            <div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
+<div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
-        <div class="buttons" style="margin: 10px; ">
+        <div class="buttons" style="margin-top: 10px; margin-left: 10px; ">
             <button type="button" class="button control_btn alert close_btn hide" data-target="offCanvas"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
             <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" >Trips</button>
             <button type="button" class="button control_btn main_btn sensors_btn"  data-target="offCanvasRight">Sensors</button>
@@ -65,6 +65,16 @@
 </body>
     
 <script>
+
+    let set_loading = ()=>{
+        $('#chart').addClass('loading')
+        $('#map').addClass('loading')
+    }
+    let set_done_loading = ()=>{
+        $('#chart').removeClass('loading')
+        $('#map').removeClass('loading')
+    }
+
     $('#map').css('height', $(window).height()*0.4)
     $('#chart').css('height', $(window).height()*0.4)
 //    $('#map').css('margin-top', $(window).height()*0.6)
@@ -197,11 +207,13 @@
     function display(session, first_time){
   
        ses_meta =  meta[session]
+        set_loading()
        $.getJSON( `http://${location.hostname}/data`,
                   {
                     session: session
                   },
                   function( res ) {
+                    set_done_loading()
                     if(first_time){
                         raw_data = []
                         sensors = res.sensors
