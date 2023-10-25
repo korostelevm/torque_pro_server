@@ -167,27 +167,23 @@ class SessionHandler(tornado.web.RequestHandler):
     #
     
     def get(self):
-        print "getting sessions"        
-        self.write(json.dumps({}))
-        return False
-        
-        stats.calc_stats()
-        session_ids = []
-        sessions_meta = {}
+        # stats.calc_stats()
+        # session_ids = []
+        # sessions_meta = {}
 	
-        sessions = logs_db.Trip.find({},{'_id':0}).limit(1).sort('session')
+        # sessions = logs_db.Trip.find({},{'_id':0}).limit(1).sort('session')
         
-        for a in sessions:
-            try:
-                if a['time'] < 10:
-                    logs_db.TripData.delete_many({'session':a['session']})
-                    logs_db.Trip.delete_many({'session':a['session']})
-                    continue
-                sessions_meta[a['session']] = a
-                sessions_meta[a['session']]['start_from_home'] =  vincenty(a['start'], [40.117357, -75.037635]).miles
-                session_ids.append(a['session'])
-            except Exception, e:
-                pass
+        # for a in sessions:
+        #     try:
+        #         if a['time'] < 10:
+        #             logs_db.TripData.delete_many({'session':a['session']})
+        #             logs_db.Trip.delete_many({'session':a['session']})
+        #             continue
+        #         sessions_meta[a['session']] = a
+        #         sessions_meta[a['session']]['start_from_home'] =  vincenty(a['start'], [40.117357, -75.037635]).miles
+        #         session_ids.append(a['session'])
+        #     except Exception, e:
+        #         pass
           
 #         sessions = logs_db.TripData.find({'kff1204':{'$ne':None},'kff1266':{'$ne':None}})
 #         session_ids = []
