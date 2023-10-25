@@ -174,7 +174,7 @@ class SessionHandler(tornado.web.RequestHandler):
         session_ids = []
         sessions_meta = {}
 	
-        sessions = logs_db.Trip.find({},{'_id':0}).limit(1).sort('session')
+        sessions = logs_db.Trip.find({},{'_id':0}).sort('session')
         
         for a in sessions:
             try:
