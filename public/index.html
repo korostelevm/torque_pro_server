@@ -286,18 +286,21 @@
                         $('#sensors').append($sensor)
                         
                     })
+                    makeChart(raw_data, chart_vars.x, chart_vars.y)
+                    
                     if(first_time){
                         active_session = session;
                         if($('#panel_map').hasClass('is-active'))
-                            initMap(raw_data,'kff1001',true)
+                            // initMap(raw_data,'kff1001',true)
+                            initMap(raw_data, chart_vars.y,true)    
                         }
            
                     if($('#panel_map').hasClass('is-active'))           
-                        updateMap(raw_data,'kff1001',first_time)
+                        // updateMap(raw_data,'kff1001',first_time)
+                        updateMap(raw_data,chart_vars.y,true)
            
-                    makeChart(raw_data, chart_vars.x, chart_vars.y)
-                    initMap(raw_data, chart_vars.y,true)    
-                    updateMap(raw_data,chart_vars.y,true)
+                    
+                    // initMap(raw_data, chart_vars.y,true)    
                 })
     }
 
