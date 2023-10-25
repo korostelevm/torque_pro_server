@@ -194,7 +194,7 @@
     function display(session, first_time){
   
        ses_meta =  meta[session]
-       $.getJSON( "http://ec2-54-197-25-2.compute-1.amazonaws.com/data",
+       $.getJSON( `http://${location.hostname}/data`,
                   {
                     session: session
                   },
@@ -505,7 +505,7 @@
     }
         
  
-        ws = new WebSocket("ws://ec2-54-197-25-2.compute-1.amazonaws.com/socket");
+        ws = new WebSocket(`ws://${location.hostname}/socket`);
 
         ws.onmessage = function(e) {
             console.log(e.data)
