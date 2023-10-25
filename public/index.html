@@ -37,7 +37,7 @@
     <div id = 'sensors' ></div>
 </div>    
 
-            
+            <div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
         <div class="buttons">
@@ -45,7 +45,7 @@
             <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" >Trips</button>
             <button type="button" class="button control_btn main_btn sensors_btn"  data-target="offCanvasRight">Sensors</button>
         </div>
-        <div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
+        <div id="chart_off_canvas"></div>
         <ul class="tabs" data-tabs id="example-tabs">
           <li class="tabs-title "><a id='stats_tab' href="#panel_stats" aria-selected="true">stats</a></li>
           <li class="tabs-title is-active"><a id='map_tab' href="#panel_map">map</a></li>
@@ -112,7 +112,7 @@
         })
         $('.position-bottom').addClass('position-left')
         $('.position-left').removeClass('position-bottom')
-        $('#chart').prependTo($('.off-canvas-content'))
+        $('#chart').prependTo($('#chart_off_canvas'))
     }
     
    var map;
