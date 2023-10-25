@@ -323,7 +323,7 @@ def webSocketSendMessage(message):
 def make_app():
     return tornado.web.Application([
 #         (r'/', tornado.web.StaticFileHandler,  {'path':'public/index.html'}),
-        (r'/socket', SocketHandler),
+        # (r'/socket', SocketHandler),
         (r"/push/*", MainHandler),
         (r"/sessions", SessionHandler),
         (r"/data*", DataHandler),
@@ -335,6 +335,7 @@ def make_app():
 if __name__ == "__main__":
     print "hello"
     app = make_app()
+    print "app made"
     app.listen(80)
     server = tornado.ioloop.IOLoop.instance()
     server.start()
