@@ -40,11 +40,11 @@
             <div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
-     
-     <button type="button" class="button control_btn alert close_btn hide" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px; right: 0px"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
-     <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" style="position:absolute; z-index:1; bottom:0px;">Trips</button>
-     <button type="button" class="button control_btn main_btn sensors_btn" style= "bottom: 0px; position: absolute; left:50%; transform:translateX(-50%); z-index:1;"  data-target="offCanvasRight">Sensors</button>
-     
+        <div class="buttons">
+            <button type="button" class="button control_btn alert close_btn hide" data-target="offCanvas"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
+            <button type="button" class="button control_btn main_btn trips_btn" data-target="offCanvas" >Trips</button>
+            <button type="button" class="button control_btn main_btn sensors_btn"  data-target="offCanvasRight">Sensors</button>
+        </div>
         <ul class="tabs" data-tabs id="example-tabs">
           <li class="tabs-title "><a id='stats_tab' href="#panel_stats" aria-selected="true">stats</a></li>
           <li class="tabs-title is-active"><a id='map_tab' href="#panel_map">map</a></li>
