@@ -37,7 +37,7 @@
     <div id = 'sensors' ></div>
 </div>    
 
-<div id = 'chart'  style='width: 95%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
+<div id = 'chart'  style='width: 100%;  position:relative; z-index:1; background: rgba(255,255,255,0.8)'></div>
 
  <div class="off-canvas-content" data-off-canvas-content>
         <div class="buttons" style="margin-top: 10px; margin-left: 10px; ">
@@ -86,7 +86,7 @@
     $('#chart').css('height', $(window).height()*0.4)
 //    $('#map').css('margin-top', $(window).height()*0.6)
     $(document).foundation();
-    $('.off-canvas').foundation('open');
+    
     $('.close_btn').on('click',function(){
           $('.off-canvas').foundation('close');
         $('.main_btn').find('.closeme').remove();
@@ -409,7 +409,7 @@
         //console.log(x_var)
         //console.log(y_var)
         var margin = {top: 30, right: 10, bottom: 30, left: 30},
-            width = $('#chart').width() - margin.left - margin.right,
+            width = $('#chart').width() - margin.left - margin.right - $('#sensors').width(),
             height = $('#chart').height() - margin.top - margin.bottom;
         
         
