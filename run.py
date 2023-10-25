@@ -340,6 +340,10 @@ class TestHandler(tornado.web.RequestHandler):
         self.write(json.dumps(res,default=json_util.default))
         
 
+class RootHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("public/index.html")
+
 
 def make_app():
     return tornado.web.Application([
@@ -349,7 +353,8 @@ def make_app():
         (r"/sessions", SessionHandler),
         (r"/data*", DataHandler),
         (r"/update*", UpdateHandler),
-        (r'/', tornado.web.StaticFileHandler, {'path': './public/index.html'}),
+        (r"/", RootHandler),
+        # (r'/', tornado.web.StaticFileHandler, {'path': './public/index.html'}),
         (r'/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
         
     ],compress_response=True)
