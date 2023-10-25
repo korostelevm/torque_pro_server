@@ -343,7 +343,7 @@ class TestHandler(tornado.web.RequestHandler):
 
 def make_app():
     return tornado.web.Application([
-        (r'/', tornado.web.StaticFileHandler,  {'path':'public/index.html'}),
+        # (r'/', tornado.web.StaticFileHandler,  {'path':'public/index.html'}),
         # (r'/test', TestHandler),
         # (r'/socket', SocketHandler),
         # (r"/push/*", MainHandler),
